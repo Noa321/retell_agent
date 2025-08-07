@@ -536,6 +536,57 @@
                 console.log('Tab hidden - call still active');
             }
         });
+        <!-- Add this anywhere in your current website's HTML -->
+<div id="voice-widget" style="
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(39, 174, 96, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    z-index: 9999;
+    transition: all 0.3s ease;
+" onclick="openVoiceChat()">
+    🎙️
+    <div style="
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 24px;
+        height: 24px;
+        background: #27ae60;
+        border-radius: 50%;
+        border: 3px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: white;
+    ">✓</div>
+</div>
+
+<script>
+function openVoiceChat() {
+    // Open voice chat in a popup window
+    const popup = window.open(
+        '/voice-chat.html', 
+        'voicechat', 
+        'width=400,height=600,scrollbars=no,resizable=no'
+    );
+    
+    if (!popup) {
+        alert('Please allow popups for voice chat to work!');
+    }
+}
+</script>
     </script>
 </body>
 </html>
