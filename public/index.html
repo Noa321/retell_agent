@@ -156,6 +156,16 @@
             padding: 15px;
             border-radius: 10px;
             margin: 20px 0;
+            text-align: left;
+        }
+        
+        .success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid rgba(39, 174, 96, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
         }
         
         @media (max-width: 768px) {
@@ -199,51 +209,14 @@
         let isCallActive = false;
         let isSDKLoaded = false;
         
-        // Load the Retell SDK dynamically
-        function loadRetellSDK() {
+        // Function to load script dynamically
+        function loadScript(src) {
             return new Promise((resolve, reject) => {
-                // Try multiple CDN URLs
-                const sdkUrls = [
-                    'https://unpkg.com/retell-client-js-sdk@latest/dist/retell-client-js-sdk.js',
-                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/retell-client-js-sdk.js',
-                    'https://unpkg.com/retell-client-js-sdk@2.0.0/dist/retell-client-js-sdk.js'
-                ];
-                
-                let currentIndex = 0;
-                
-                function tryLoadSDK(url) {
-                    const script = document.createElement('script');
-                    script.src = url;
-                    script.async = true;
-                    
-                    script.onload = () => {
-                        console.log(`Retell SDK loaded from: ${url}`);
-                        // Check if RetellWebClient is available
-                        setTimeout(() => {
-                            if (typeof RetellWebClient !== 'undefined') {
-                                isSDKLoaded = true;
-                                resolve();
-                            } else {
-                                reject(new Error('RetellWebClient not found after loading'));
-                            }
-                        }, 100);
-                    };
-                    
-                    script.onerror = () => {
-                        console.warn(`Failed to load SDK from: ${url}`);
-                        currentIndex++;
-                        if (currentIndex < sdkUrls.length) {
-                            document.head.removeChild(script);
-                            tryLoadSDK(sdkUrls[currentIndex]);
-                        } else {
-                            reject(new Error('All SDK URLs failed to load'));
-                        }
-                    };
-                    
-                    document.head.appendChild(script);
-                }
-                
-                tryLoadSDK(sdkUrls[currentIndex]);
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => resolve();
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
             });
         }
         
@@ -252,18 +225,73 @@
             try {
                 updateStatus('Loading voice system...');
                 
-                // Load the SDK
-                await loadRetellSDK();
+                // Try to load the SDK with the correct jsdelivr URL
+                const sdkUrls = [
+                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/index.js',
+                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.js',
+                    'https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.js',
+                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/lib/index.js'
+                ];
+                
+                let sdkLoaded = false;
+                
+                for (const url of sdkUrls) {
+                    try {
+                        console.log(`Trying to load SDK from: ${url}`);
+                        await loadScript(url);
+                        
+                        // Wait a bit for the script to initialize
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Check if RetellWebClient is available
+                        if (typeof RetellWebClient !== 'undefined') {
+                            console.log(`✅ SDK loaded successfully from: ${url}`);
+                            sdkLoaded = true;
+                            break;
+                        }
+                    } catch (error) {
+                        console.log(`❌ Failed to load from: ${url}`);
+                        continue;
+                    }
+                }
+                
+                if (!sdkLoaded) {
+                    throw new Error('All SDK URLs failed');
+                }
                 
                 // Initialize the voice system
                 await initializeVoiceSystem();
                 
             } catch (error) {
                 console.error('Failed to initialize:', error);
-                updateStatus('❌ Failed to load voice system. Please refresh the page.');
-                showError('Voice system failed to load. This might be due to network issues or browser compatibility.');
+                handleSDKLoadError();
             }
         });
+        
+        function handleSDKLoadError() {
+            updateStatus('⚠️ SDK loading failed - using fallback method');
+            showMessage(`
+                <div class="error">
+                    <strong>⚠️ SDK Loading Issue</strong><br>
+                    The Retell SDK couldn't load from CDN. This is usually due to:<br>
+                    • Network connectivity issues<br>
+                    • CDN service problems<br>
+                    • Browser extensions blocking scripts<br><br>
+                    <strong>Solutions:</strong><br>
+                    1. Refresh the page and try again<br>
+                    2. Check your internet connection<br>
+                    3. Disable ad blockers temporarily<br>
+                    4. Try a different browser<br><br>
+                    Your backend API is ready - only the frontend SDK is having issues.
+                </div>
+            `);
+            
+            // Enable fallback button
+            const button = document.getElementById('voiceButton');
+            button.disabled = false;
+            button.innerHTML = '🔄 Retry Loading';
+            button.onclick = () => window.location.reload();
+        }
         
         async function initializeVoiceSystem() {
             try {
@@ -314,15 +342,23 @@
                 button.innerHTML = '🎙️ Start Voice Conversation';
                 updateStatus('✅ Ready! Click above to start talking');
                 
+                showMessage(`
+                    <div class="success">
+                        <strong>✅ Voice System Ready!</strong><br>
+                        Your AI agent is connected and ready to talk.
+                        Click the button above to start your conversation.
+                    </div>
+                `);
+                
             } catch (error) {
                 console.error('Failed to initialize voice system:', error);
                 updateStatus('❌ Voice system initialization failed.');
-                showError('Failed to initialize voice system: ' + error.message);
+                handleSDKLoadError();
             }
         }
         
         async function handleVoiceClick() {
-            if (!isSDKLoaded || !retellClient) {
+            if (!retellClient) {
                 updateStatus('❌ Voice system not ready. Please refresh the page.');
                 return;
             }
@@ -377,7 +413,18 @@
                 isCallActive = false;
                 updateStatus(`❌ Connection failed: ${error.message}`);
                 updateButton(false);
-                showError('Failed to connect: ' + error.message + '. Please check your internet connection and try again.');
+                
+                showMessage(`
+                    <div class="error">
+                        <strong>❌ Connection Failed</strong><br>
+                        ${error.message}<br><br>
+                        <strong>Possible causes:</strong><br>
+                        • Backend server not deployed yet<br>
+                        • Environment variables not set<br>
+                        • Network connectivity issues<br>
+                        • API key or agent ID incorrect
+                    </div>
+                `);
             }
         }
         
@@ -412,19 +459,18 @@
             }
         }
         
-        function showError(message) {
-            // Remove existing error messages
-            const existingErrors = document.querySelectorAll('.error');
-            existingErrors.forEach(error => error.remove());
+        function showMessage(html) {
+            // Remove existing messages
+            const existingMessages = document.querySelectorAll('.error, .success');
+            existingMessages.forEach(msg => msg.remove());
             
-            // Create new error message
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.innerHTML = `<strong>⚠️ Error:</strong> ${message}`;
+            // Create new message
+            const messageDiv = document.createElement('div');
+            messageDiv.innerHTML = html;
             
             // Insert after status
             const statusDiv = document.getElementById('status');
-            statusDiv.parentNode.insertBefore(errorDiv, statusDiv.nextSibling);
+            statusDiv.parentNode.insertBefore(messageDiv.firstElementChild, statusDiv.nextSibling);
         }
     </script>
 </body>
