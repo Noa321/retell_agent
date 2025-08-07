@@ -1,17 +1,8 @@
 {
-  "name": "retell-voice-agents",
+  "name": "my-voice-agent",
   "version": "1.0.0",
-  "description": "Voice AI agents powered by Retell.AI on Vercel",
-  "main": "index.js",
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step needed'",
-    "start": "vercel dev"
-  },
+  "description": "Single voice agent powered by Retell.AI",
   "dependencies": {
     "retell-sdk": "^2.0.0"
-  },
-  "keywords": ["voice", "ai", "retell", "vercel"],
-  "author": "Your Name",
-  "license": "MIT"
+  }
 }
