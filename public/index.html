@@ -447,68 +447,70 @@
             }
             
             async tryWebCall() {
-                this.updateTooltip('🔄 Trying web call...');
-                this.button.classList.remove('ready');
-                this.button.classList.add('connecting');
-                this.icon.textContent = '⏳';
-                
-                try {
-                    // Try to create a call
-                    const response = await fetch('/api/create-web-call', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            user_id: 'user_' + Math.random().toString(36).substr(2, 9),
-                            metadata: {
-                                source: 'web_call_attempt',
-                                page_url: window.location.href
-                            }
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.showWebCallInstructions(data.access_token);
-                    } else {
-                        throw new Error('Backend not ready');
-                    }
-                    
-                } catch (error) {
-                    this.showPhoneOption();
-                } finally {
-                    this.button.classList.remove('connecting');
-                    this.button.classList.add('ready');
-                    this.icon.textContent = '🎙️';
-                    this.updateTooltip('Click to talk with AI assistant');
-                }
-            }
+    this.updateTooltip('🔄 Trying web call...');
+    this.button.classList.remove('ready');
+    this.button.classList.add('connecting');
+    this.icon.textContent = '⏳';
+    
+    try {
+        // Check if SDK is loaded
+        if (typeof RetellWebClient === 'undefined') {
+            throw new Error('SDK not loaded');
+        }
+        
+        // Initialize Retell client
+        if (!window.retellClient) {
+            window.retellClient = new RetellWebClient();
             
-            showWebCallInstructions(accessToken) {
-                this.optionsPanel.innerHTML = `
-                    <div class="voice-options-header">
-                        <div class="voice-options-title">🌐 Web Call Ready</div>
-                        <button class="voice-options-close" onclick="location.reload()">×</button>
-                    </div>
-                    
-                    <div class="success-message">
-                        ✅ Call created successfully!<br>
-                        Access Token: ${accessToken.substring(0, 20)}...
-                    </div>
-                    
-                    <div style="padding: 20px; background: rgba(255,193,7,0.1); border-radius: 10px; margin: 15px 0;">
-                        <h4 style="margin: 0 0 10px 0; color: #f39c12;">⚠️ Browser SDK Not Available</h4>
-                        <p style="margin: 0; font-size: 13px; line-height: 1.4;">
-                            Your backend is working perfectly, but the browser SDK has compatibility issues. 
-                            Try the phone option below for guaranteed voice experience.
-                        </p>
-                    </div>
-                    
-                    <button class="voice-option primary" onclick="voiceAssistant.showPhoneOption()">
-                        <h4>📞 Use Phone Instead</h4>
-                        <p>Call directly for immediate voice conversation</p>
-                    </button>
-                `;
-            }
+            // Setup event listeners
+            window.retellClient.on("call_started", () => {
+                console.log("📞 Call started");
+                this.updateTooltip('✅ Connected! Start speaking...');
+            });
+            
+            window.retellClient.on("call_ended", () => {
+                console.log("📞 Call ended");
+                this.updateTooltip('📞 Call ended');
+            });
+        }
+        
+        // Create call
+        const response = await fetch('/api/create-web-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: 'user_' + Math.random().toString(36).substr(2, 9),
+                metadata: {
+                    source: 'web_call_attempt',
+                    page_url: window.location.href
+                }
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Start the call
+            await window.retellClient.startCall({
+                accessToken: data.access_token,
+                sampleRate: 24000
+            });
+            
+            this.updateTooltip('🎉 Voice call active!');
+            
+        } else {
+            throw new Error('Backend error');
+        }
+        
+    } catch (error) {
+        console.error('Call failed:', error);
+        this.showPhoneOption();
+    } finally {
+        this.button.classList.remove('connecting');
+        this.button.classList.add('ready');
+        this.icon.textContent = '🎙️';
+    }
+}
             
             showPhoneOption() {
                 this.optionsPanel.innerHTML = `
