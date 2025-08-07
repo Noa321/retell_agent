@@ -4,66 +4,239 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Voice Assistant</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        
+        .voice-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+            transition: transform 0.3s ease;
+        }
+        
+        .voice-card:hover {
+            transform: translateY(-8px);
+        }
+        
+        .agent-icon {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+        
+        .voice-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            padding: 20px 50px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+            margin: 20px 0;
+        }
+        
+        .voice-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
+        }
+        
+        .voice-button.active {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+            font-size: 1.1em;
+        }
+        
+        .end-button {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            display: none;
+        }
+        
+        .transcript {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            min-height: 150px;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5em; }
+            .voice-card { padding: 30px; }
+            .voice-button { padding: 15px 30px; font-size: 1.1em; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <header class="hero">
-            <h1>🎤 AI Voice Assistant</h1>
-            <p>Click any button below to start a voice conversation with AI</p>
-        </header>
-
-        <div class="agent-grid">
-            <div class="agent-card">
-                <div class="agent-icon">🛠️</div>
-                <h3>Technical Support</h3>
-                <p>Get help with technical issues and questions</p>
-                <button class="voice-btn" onclick="startVoiceCall('support')">
-                    Talk to Support
-                </button>
-            </div>
-
-            <div class="agent-card">
-                <div class="agent-icon">💼</div>
-                <h3>Sales Consultant</h3>
-                <p>Learn about our products and pricing</p>
-                <button class="voice-btn" onclick="startVoiceCall('sales')">
-                    Talk to Sales
-                </button>
-            </div>
-
-            <div class="agent-card">
-                <div class="agent-icon">🎯</div>
-                <h3>Business Advisor</h3>
-                <p>Get strategic advice and consultation</p>
-                <button class="voice-btn" onclick="startVoiceCall('consultant')">
-                    Talk to Advisor
-                </button>
-            </div>
-        </div>
-
-        <div class="status-section">
-            <div id="status" class="status-indicator">
-                Choose an agent above to start talking
-            </div>
-            <button id="endCallBtn" class="end-call-btn" onclick="endCall()" style="display: none;">
-                🛑 End Call
+        <h1>🎤 AI Voice Assistant</h1>
+        <p class="subtitle">Start a natural conversation with your AI agent</p>
+        
+        <div class="voice-card">
+            <div class="agent-icon">🤖</div>
+            <h2>Your AI Assistant</h2>
+            <p>Click below to start talking. No typing required!</p>
+            <button id="voiceButton" class="voice-button" onclick="toggleVoiceCall()">
+                🎙️ Start Voice Conversation
             </button>
         </div>
-
-        <div class="transcript-section">
-            <h3>📝 Live Transcript</h3>
-            <div id="transcript" class="transcript">
-                Voice conversations will appear here...
-            </div>
+        
+        <div id="status" class="status">
+            Click above to start talking
+        </div>
+        
+        <button id="endButton" class="end-button" onclick="endCall()">
+            🛑 End Call
+        </button>
+        
+        <div class="transcript">
+            <strong>📝 Live Transcript:</strong><br>
+            <span id="transcript">Voice conversations will appear here...</span>
         </div>
     </div>
 
-    <button id="floatingEndBtn" class="floating-end-btn" onclick="endCall()" style="display: none;">
-        ✕
-    </button>
-
     <script src="https://unpkg.com/retell-client-js-sdk@latest/dist/retell-client-js-sdk.js"></script>
-    <script src="app.js"></script>
+    <script>
+        const retellClient = new RetellWebClient();
+        let isCallActive = false;
+        
+        retellClient.on("call_started", () => {
+            updateStatus("✅ Connected! Start speaking...");
+            updateButton(true);
+        });
+        
+        retellClient.on("call_ended", () => {
+            updateStatus("📞 Call ended. Click to start again.");
+            updateButton(false);
+        });
+        
+        retellClient.on("update", (update) => {
+            if (update.transcript) {
+                document.getElementById('transcript').textContent = update.transcript;
+            }
+        });
+        
+        retellClient.on("error", (error) => {
+            console.error("Call error:", error);
+            updateStatus("❌ Connection error. Please try again.");
+            updateButton(false);
+        });
+        
+        async function toggleVoiceCall() {
+            if (isCallActive) {
+                retellClient.stopCall();
+                return;
+            }
+            
+            try {
+                updateStatus("🔄 Connecting...");
+                
+                const response = await fetch('/api/create-web-call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: 'user123' })
+                });
+                
+                const { access_token } = await response.json();
+                
+                await retellClient.startCall({
+                    accessToken: access_token,
+                    sampleRate: 24000
+                });
+                
+            } catch (error) {
+                console.error("Failed to start call:", error);
+                updateStatus("❌ Failed to connect. Check console for details.");
+            }
+        }
+        
+        function endCall() {
+            if (isCallActive) {
+                retellClient.stopCall();
+            }
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+        
+        function updateButton(active) {
+            const button = document.getElementById('voiceButton');
+            const endButton = document.getElementById('endButton');
+            isCallActive = active;
+            
+            if (active) {
+                button.textContent = '🔴 Connected - Keep Talking';
+                button.classList.add('active');
+                endButton.style.display = 'inline-block';
+            } else {
+                button.textContent = '🎙️ Start Voice Conversation';
+                button.classList.remove('active');
+                endButton.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>
