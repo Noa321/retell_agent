@@ -85,6 +85,13 @@
             animation: pulse 2s infinite;
         }
         
+        .voice-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
@@ -109,6 +116,12 @@
             cursor: pointer;
             margin: 10px;
             display: none;
+            transition: all 0.3s ease;
+        }
+        
+        .end-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
         }
         
         .transcript {
@@ -120,6 +133,20 @@
             text-align: left;
             font-family: 'Courier New', monospace;
             line-height: 1.6;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
         @media (max-width: 768px) {
@@ -138,13 +165,13 @@
             <div class="agent-icon">🤖</div>
             <h2>Your AI Assistant</h2>
             <p>Click below to start talking. No typing required!</p>
-            <button id="voiceButton" class="voice-button" onclick="toggleVoiceCall()">
-                🎙️ Start Voice Conversation
+            <button id="voiceButton" class="voice-button" onclick="toggleVoiceCall()" disabled>
+                <span class="loading"></span> Loading...
             </button>
         </div>
         
         <div id="status" class="status">
-            Click above to start talking
+            Loading voice system...
         </div>
         
         <button id="endButton" class="end-button" onclick="endCall()">
@@ -157,34 +184,78 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/retell-client-js-sdk@latest/dist/retell-client-js-sdk.js"></script>
+    <!-- Load Retell SDK -->
+    <script src="https://unpkg.com/retell-client-js-sdk@latest/dist/retell-client-js-sdk.min.js"></script>
+    
     <script>
-        const retellClient = new RetellWebClient();
+        // Global variables
+        let retellClient = null;
         let isCallActive = false;
         
-        retellClient.on("call_started", () => {
-            updateStatus("✅ Connected! Start speaking...");
-            updateButton(true);
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            // Wait a moment for SDK to load
+            setTimeout(initializeVoiceSystem, 1000);
         });
         
-        retellClient.on("call_ended", () => {
-            updateStatus("📞 Call ended. Click to start again.");
-            updateButton(false);
-        });
-        
-        retellClient.on("update", (update) => {
-            if (update.transcript) {
-                document.getElementById('transcript').textContent = update.transcript;
+        function initializeVoiceSystem() {
+            try {
+                // Check if RetellWebClient is available
+                if (typeof RetellWebClient === 'undefined') {
+                    console.error('RetellWebClient not found');
+                    updateStatus('❌ Voice system failed to load. Please refresh the page.');
+                    return;
+                }
+                
+                // Initialize Retell client
+                retellClient = new RetellWebClient();
+                
+                // Setup event listeners
+                retellClient.on("call_started", () => {
+                    console.log("Call started");
+                    isCallActive = true;
+                    updateStatus("✅ Connected! Start speaking...");
+                    updateButton(true);
+                });
+                
+                retellClient.on("call_ended", () => {
+                    console.log("Call ended");
+                    isCallActive = false;
+                    updateStatus("📞 Call ended. Click to start again.");
+                    updateButton(false);
+                });
+                
+                retellClient.on("update", (update) => {
+                    if (update.transcript) {
+                        document.getElementById('transcript').textContent = update.transcript;
+                    }
+                });
+                
+                retellClient.on("error", (error) => {
+                    console.error("Call error:", error);
+                    isCallActive = false;
+                    updateStatus("❌ Connection error. Please try again.");
+                    updateButton(false);
+                });
+                
+                // Enable the button
+                const button = document.getElementById('voiceButton');
+                button.disabled = false;
+                button.innerHTML = '🎙️ Start Voice Conversation';
+                updateStatus('Click above to start talking');
+                
+            } catch (error) {
+                console.error('Failed to initialize voice system:', error);
+                updateStatus('❌ Voice system initialization failed. Please refresh the page.');
             }
-        });
-        
-        retellClient.on("error", (error) => {
-            console.error("Call error:", error);
-            updateStatus("❌ Connection error. Please try again.");
-            updateButton(false);
-        });
+        }
         
         async function toggleVoiceCall() {
+            if (!retellClient) {
+                updateStatus('❌ Voice system not ready. Please refresh the page.');
+                return;
+            }
+            
             if (isCallActive) {
                 retellClient.stopCall();
                 return;
@@ -192,28 +263,46 @@
             
             try {
                 updateStatus("🔄 Connecting...");
+                updateButton(true, true); // true for active, true for connecting
                 
                 const response = await fetch('/api/create-web-call', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: 'user123' })
+                    body: JSON.stringify({ 
+                        user_id: 'user_' + Math.random().toString(36).substr(2, 9),
+                        metadata: {
+                            page_url: window.location.href,
+                            timestamp: Date.now()
+                        }
+                    })
                 });
                 
-                const { access_token } = await response.json();
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.access_token) {
+                    throw new Error('No access token received');
+                }
                 
                 await retellClient.startCall({
-                    accessToken: access_token,
-                    sampleRate: 24000
+                    accessToken: data.access_token,
+                    sampleRate: 24000,
+                    emitRawAudioSamples: false
                 });
                 
             } catch (error) {
                 console.error("Failed to start call:", error);
-                updateStatus("❌ Failed to connect. Check console for details.");
+                isCallActive = false;
+                updateStatus(`❌ Failed to connect: ${error.message}`);
+                updateButton(false);
             }
         }
         
         function endCall() {
-            if (isCallActive) {
+            if (retellClient && isCallActive) {
                 retellClient.stopCall();
             }
         }
@@ -222,12 +311,15 @@
             document.getElementById('status').textContent = message;
         }
         
-        function updateButton(active) {
+        function updateButton(active, connecting = false) {
             const button = document.getElementById('voiceButton');
             const endButton = document.getElementById('endButton');
-            isCallActive = active;
             
-            if (active) {
+            if (connecting) {
+                button.innerHTML = '<span class="loading"></span> Connecting...';
+                button.classList.add('active');
+                endButton.style.display = 'none';
+            } else if (active) {
                 button.textContent = '🔴 Connected - Keep Talking';
                 button.classList.add('active');
                 endButton.style.display = 'inline-block';
