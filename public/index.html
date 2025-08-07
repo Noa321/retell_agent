@@ -3,475 +3,550 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Voice Assistant</title>
+    <title>Your Website with Voice Agent</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        /* Your existing website styles */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            line-height: 1.6;
+            margin: 0;
             padding: 20px;
+            background: #f4f4f4;
         }
         
-        .container {
-            text-align: center;
-            max-width: 600px;
+        .content {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
         h1 {
-            font-size: 3em;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #fff, #f0f0f0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .subtitle {
-            font-size: 1.3em;
-            margin-bottom: 40px;
-            opacity: 0.9;
-        }
-        
-        .voice-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 25px;
-            padding: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #333;
             margin-bottom: 30px;
-            transition: transform 0.3s ease;
         }
         
-        .voice-card:hover {
-            transform: translateY(-8px);
-        }
-        
-        .agent-icon {
-            font-size: 5em;
+        p {
+            color: #666;
             margin-bottom: 20px;
         }
         
-        .voice-button {
+        /* === FLOATING VOICE BUTTON STYLES === */
+        .voice-floating-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .voice-floating-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
             background: linear-gradient(45deg, #ff6b6b, #ee5a24);
             border: none;
-            padding: 20px 50px;
-            border-radius: 50px;
-            color: white;
-            font-size: 1.3em;
-            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
             box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
-            margin: 20px 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            position: relative;
+            overflow: hidden;
         }
         
-        .voice-button:hover:not(:disabled) {
-            transform: translateY(-3px);
+        .voice-floating-button:hover {
+            transform: scale(1.1);
             box-shadow: 0 12px 35px rgba(255, 107, 107, 0.6);
         }
         
-        .voice-button.active {
+        .voice-floating-button.active {
             background: linear-gradient(45deg, #27ae60, #2ecc71);
-            animation: pulse 2s infinite;
+            animation: pulse-floating 2s infinite;
         }
         
-        .voice-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+        .voice-floating-button.connecting {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
         }
         
-        @keyframes pulse {
+        @keyframes pulse-floating {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
         }
         
-        .status {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
+        .voice-floating-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: shimmer 3s infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Voice Status Tooltip */
+        .voice-tooltip {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
             backdrop-filter: blur(10px);
-            font-size: 1.1em;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .end-button {
+        .voice-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .voice-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 20px;
+            border: 8px solid transparent;
+            border-top-color: rgba(0, 0, 0, 0.9);
+        }
+        
+        /* Voice Transcript Overlay */
+        .voice-transcript-overlay {
+            position: fixed;
+            bottom: 120px;
+            right: 30px;
+            width: 300px;
+            max-height: 200px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transform: translateY(20px) scale(0.9);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 999;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .voice-transcript-overlay.visible {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        
+        .voice-transcript-header {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .voice-transcript-content {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.4;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .voice-transcript-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        
+        /* End Call Button */
+        .voice-end-button {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
             background: linear-gradient(45deg, #e74c3c, #c0392b);
             border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
+            padding: 8px 16px;
+            border-radius: 20px;
             color: white;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            margin: 10px;
-            display: none;
+            opacity: 0;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
         }
         
-        .end-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+        .voice-end-button.visible {
+            opacity: 1;
+            bottom: -25px;
         }
         
-        .transcript {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 25px;
-            margin-top: 30px;
-            min-height: 150px;
-            text-align: left;
-            font-family: 'Courier New', monospace;
-            line-height: 1.6;
+        .voice-end-button:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.6);
         }
         
-        .loading {
-            display: inline-block;
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .voice-floating-container {
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .voice-floating-button {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5em;
+            }
+            
+            .voice-transcript-overlay {
+                width: 280px;
+                right: 20px;
+                bottom: 100px;
+            }
+        }
+        
+        /* Notification Dots */
+        .voice-notification-dot {
+            position: absolute;
+            top: -5px;
+            right: -5px;
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(255,255,255,0.3);
+            background: #e74c3c;
             border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
+            border: 3px solid white;
+            animation: notification-pulse 2s infinite;
         }
         
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .error {
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid rgba(231, 76, 60, 0.5);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        
-        .success {
-            background: rgba(39, 174, 96, 0.2);
-            border: 1px solid rgba(39, 174, 96, 0.5);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: left;
-        }
-        
-        @media (max-width: 768px) {
-            h1 { font-size: 2.5em; }
-            .voice-card { padding: 30px; }
-            .voice-button { padding: 15px 30px; font-size: 1.1em; }
+        @keyframes notification-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎤 AI Voice Assistant</h1>
-        <p class="subtitle">Start a natural conversation with your AI agent</p>
+    <!-- Your existing website content -->
+    <div class="content">
+        <h1>Welcome to Your Website</h1>
+        <p>This is your regular website content. The floating voice button will appear in the bottom-right corner and allow visitors to talk to your AI agent.</p>
         
-        <div class="voice-card">
-            <div class="agent-icon">🤖</div>
-            <h2>Your AI Assistant</h2>
-            <p>Click below to start talking. No typing required!</p>
-            <button id="voiceButton" class="voice-button" onclick="handleVoiceClick()" disabled>
-                <span class="loading"></span> Loading Voice System...
-            </button>
+        <p>Your website content continues here... The voice button is non-intrusive and doesn't interfere with your existing design.</p>
+        
+        <h2>Features</h2>
+        <ul>
+            <li>Floating voice button in corner</li>
+            <li>Click to start voice conversation</li>
+            <li>Real-time transcript overlay</li>
+            <li>Professional appearance</li>
+            <li>Mobile responsive</li>
+        </ul>
+        
+        <p>Try clicking the voice button in the bottom-right corner to start talking to the AI agent!</p>
+    </div>
+    
+    <!-- === FLOATING VOICE WIDGET === -->
+    <div class="voice-floating-container">
+        <!-- Status Tooltip -->
+        <div class="voice-tooltip" id="voiceTooltip">
+            Click to talk to AI assistant
         </div>
         
-        <div id="status" class="status">
-            Initializing voice system...
+        <!-- Transcript Overlay -->
+        <div class="voice-transcript-overlay" id="transcriptOverlay">
+            <button class="voice-transcript-close" onclick="hideTranscript()">×</button>
+            <div class="voice-transcript-header">🎙️ Live Conversation</div>
+            <div class="voice-transcript-content" id="transcriptContent">
+                Conversation will appear here...
+            </div>
         </div>
         
-        <button id="endButton" class="end-button" onclick="endCall()">
-            🛑 End Call
+        <!-- Main Floating Button -->
+        <button class="voice-floating-button" id="voiceFloatingBtn" onclick="toggleVoiceCall()">
+            <span id="voiceIcon">🎙️</span>
+            <!-- Notification dot (hidden by default) -->
+            <div class="voice-notification-dot" id="notificationDot" style="display: none;"></div>
         </button>
         
-        <div class="transcript">
-            <strong>📝 Live Transcript:</strong><br>
-            <span id="transcript">Voice conversations will appear here...</span>
-        </div>
+        <!-- End Call Button -->
+        <button class="voice-end-button" id="endCallBtn" onclick="endCall()">
+            End Call
+        </button>
     </div>
-
-    <script>
-        // Global variables
-        let retellClient = null;
-        let isCallActive = false;
-        let isSDKLoaded = false;
-        
-        // Function to load script dynamically
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = () => resolve();
-                script.onerror = () => reject(new Error(`Failed to load ${src}`));
-                document.head.appendChild(script);
-            });
-        }
-        
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                updateStatus('Loading voice system...');
+    
+    <!-- Voice Script -->
+    <script type="module">
+        // Voice Agent Implementation
+        class FloatingVoiceAgent {
+            constructor() {
+                this.isCallActive = false;
+                this.retellClient = null;
+                this.isSDKLoaded = false;
+                this.isInitializing = false;
                 
-                // Try to load the SDK with the correct jsdelivr URL
-                const sdkUrls = [
-                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/dist/index.js',
-                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@latest/dist/index.js',
-                    'https://unpkg.com/retell-client-js-sdk@2.0.7/dist/index.js',
-                    'https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/lib/index.js'
-                ];
+                // DOM elements
+                this.button = document.getElementById('voiceFloatingBtn');
+                this.tooltip = document.getElementById('voiceTooltip');
+                this.icon = document.getElementById('voiceIcon');
+                this.endBtn = document.getElementById('endCallBtn');
+                this.transcriptOverlay = document.getElementById('transcriptOverlay');
+                this.transcriptContent = document.getElementById('transcriptContent');
+                this.notificationDot = document.getElementById('notificationDot');
                 
-                let sdkLoaded = false;
-                
-                for (const url of sdkUrls) {
-                    try {
-                        console.log(`Trying to load SDK from: ${url}`);
-                        await loadScript(url);
-                        
-                        // Wait a bit for the script to initialize
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        
-                        // Check if RetellWebClient is available
-                        if (typeof RetellWebClient !== 'undefined') {
-                            console.log(`✅ SDK loaded successfully from: ${url}`);
-                            sdkLoaded = true;
-                            break;
-                        }
-                    } catch (error) {
-                        console.log(`❌ Failed to load from: ${url}`);
-                        continue;
-                    }
-                }
-                
-                if (!sdkLoaded) {
-                    throw new Error('All SDK URLs failed');
-                }
-                
-                // Initialize the voice system
-                await initializeVoiceSystem();
-                
-            } catch (error) {
-                console.error('Failed to initialize:', error);
-                handleSDKLoadError();
+                this.initializeSDK();
+                this.setupEventListeners();
             }
-        });
-        
-        function handleSDKLoadError() {
-            updateStatus('⚠️ SDK loading failed - using fallback method');
-            showMessage(`
-                <div class="error">
-                    <strong>⚠️ SDK Loading Issue</strong><br>
-                    The Retell SDK couldn't load from CDN. This is usually due to:<br>
-                    • Network connectivity issues<br>
-                    • CDN service problems<br>
-                    • Browser extensions blocking scripts<br><br>
-                    <strong>Solutions:</strong><br>
-                    1. Refresh the page and try again<br>
-                    2. Check your internet connection<br>
-                    3. Disable ad blockers temporarily<br>
-                    4. Try a different browser<br><br>
-                    Your backend API is ready - only the frontend SDK is having issues.
-                </div>
-            `);
             
-            // Enable fallback button
-            const button = document.getElementById('voiceButton');
-            button.disabled = false;
-            button.innerHTML = '🔄 Retry Loading';
-            button.onclick = () => window.location.reload();
-        }
-        
-        async function initializeVoiceSystem() {
-            try {
-                updateStatus('Initializing voice client...');
+            async initializeSDK() {
+                this.isInitializing = true;
+                this.updateTooltip('Loading voice system...');
                 
-                // Initialize Retell client
-                retellClient = new RetellWebClient();
+                try {
+                    // Try to load the SDK using dynamic import (modern approach)
+                    const sdkUrls = [
+                        'https://cdn.skypack.dev/retell-client-js-sdk',
+                        'https://unpkg.com/retell-client-js-sdk@2.0.7?module',
+                        'https://esm.run/retell-client-js-sdk'
+                    ];
+                    
+                    for (const url of sdkUrls) {
+                        try {
+                            console.log(`Trying: ${url}`);
+                            const module = await import(url);
+                            if (module.RetellWebClient) {
+                                window.RetellWebClient = module.RetellWebClient;
+                                this.isSDKLoaded = true;
+                                break;
+                            }
+                        } catch (e) {
+                            console.log(`Failed: ${url}`);
+                            continue;
+                        }
+                    }
+                    
+                    if (this.isSDKLoaded) {
+                        this.retellClient = new RetellWebClient();
+                        this.setupRetellEvents();
+                        this.updateTooltip('Click to talk to AI assistant');
+                        this.showNotification();
+                    } else {
+                        throw new Error('SDK loading failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('SDK initialization failed:', error);
+                    this.handleSDKFailure();
+                }
                 
-                // Setup event listeners
-                retellClient.on("call_started", () => {
-                    console.log("✅ Call started");
-                    isCallActive = true;
-                    updateStatus("✅ Connected! Start speaking...");
-                    updateButton(true);
+                this.isInitializing = false;
+            }
+            
+            handleSDKFailure() {
+                // Fallback: Show that backend is ready but provide alternatives
+                this.updateTooltip('Backend ready - Click for options');
+                this.icon.textContent = '⚠️';
+                this.showNotification();
+            }
+            
+            setupEventListeners() {
+                // Show tooltip on hover
+                this.button.addEventListener('mouseenter', () => {
+                    this.tooltip.classList.add('visible');
                 });
                 
-                retellClient.on("call_ended", () => {
-                    console.log("📞 Call ended");
-                    isCallActive = false;
-                    updateStatus("📞 Call ended. Click to start again.");
-                    updateButton(false);
+                this.button.addEventListener('mouseleave', () => {
+                    if (!this.isCallActive) {
+                        this.tooltip.classList.remove('visible');
+                    }
+                });
+            }
+            
+            setupRetellEvents() {
+                if (!this.retellClient) return;
+                
+                this.retellClient.on("call_started", () => {
+                    this.isCallActive = true;
+                    this.button.classList.add('active');
+                    this.icon.textContent = '🔴';
+                    this.endBtn.classList.add('visible');
+                    this.updateTooltip('Connected - Talk now!');
+                    this.showTranscript();
+                    this.hideNotification();
                 });
                 
-                retellClient.on("agent_start_talking", () => {
-                    updateStatus("🗣️ AI is speaking...");
+                this.retellClient.on("call_ended", () => {
+                    this.isCallActive = false;
+                    this.button.classList.remove('active', 'connecting');
+                    this.icon.textContent = '🎙️';
+                    this.endBtn.classList.remove('visible');
+                    this.updateTooltip('Click to talk to AI assistant');
+                    this.hideTranscript();
                 });
                 
-                retellClient.on("agent_stop_talking", () => {
-                    updateStatus("👂 Listening...");
+                this.retellClient.on("agent_start_talking", () => {
+                    this.updateTooltip('🗣️ AI is speaking...');
                 });
                 
-                retellClient.on("update", (update) => {
+                this.retellClient.on("agent_stop_talking", () => {
+                    this.updateTooltip('👂 Listening...');
+                });
+                
+                this.retellClient.on("update", (update) => {
                     if (update.transcript) {
-                        document.getElementById('transcript').textContent = update.transcript;
+                        this.updateTranscript(update.transcript);
                     }
                 });
                 
-                retellClient.on("error", (error) => {
-                    console.error("❌ Call error:", error);
-                    isCallActive = false;
-                    updateStatus("❌ Connection error. Please try again.");
-                    updateButton(false);
+                this.retellClient.on("error", (error) => {
+                    console.error("Call error:", error);
+                    this.resetButton();
+                    this.updateTooltip('❌ Connection error - Try again');
                 });
-                
-                // Enable the button
-                const button = document.getElementById('voiceButton');
-                button.disabled = false;
-                button.innerHTML = '🎙️ Start Voice Conversation';
-                updateStatus('✅ Ready! Click above to start talking');
-                
-                showMessage(`
-                    <div class="success">
-                        <strong>✅ Voice System Ready!</strong><br>
-                        Your AI agent is connected and ready to talk.
-                        Click the button above to start your conversation.
-                    </div>
-                `);
-                
-            } catch (error) {
-                console.error('Failed to initialize voice system:', error);
-                updateStatus('❌ Voice system initialization failed.');
-                handleSDKLoadError();
-            }
-        }
-        
-        async function handleVoiceClick() {
-            if (!retellClient) {
-                updateStatus('❌ Voice system not ready. Please refresh the page.');
-                return;
             }
             
-            if (isCallActive) {
-                endCall();
-                return;
-            }
-            
-            try {
-                updateStatus("🔄 Connecting to AI agent...");
-                updateButton(true, true);
+            async toggleVoiceCall() {
+                if (this.isInitializing) return;
                 
-                // Call the API
-                const response = await fetch('/api/create-web-call', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        user_id: 'user_' + Math.random().toString(36).substr(2, 9),
-                        metadata: {
-                            page_url: window.location.href,
-                            timestamp: Date.now(),
-                            user_agent: navigator.userAgent
-                        }
-                    })
-                });
-                
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Server error (${response.status}): ${errorText}`);
+                if (!this.isSDKLoaded) {
+                    this.showSDKFailureOptions();
+                    return;
                 }
                 
-                const data = await response.json();
-                
-                if (!data.access_token) {
-                    throw new Error('No access token received from server');
+                if (this.isCallActive) {
+                    this.endCall();
+                    return;
                 }
                 
-                console.log('Starting call with access token...');
-                
-                // Start the call
-                await retellClient.startCall({
-                    accessToken: data.access_token,
-                    sampleRate: 24000,
-                    emitRawAudioSamples: false
-                });
-                
-            } catch (error) {
-                console.error("❌ Failed to start call:", error);
-                isCallActive = false;
-                updateStatus(`❌ Connection failed: ${error.message}`);
-                updateButton(false);
-                
-                showMessage(`
-                    <div class="error">
-                        <strong>❌ Connection Failed</strong><br>
-                        ${error.message}<br><br>
-                        <strong>Possible causes:</strong><br>
-                        • Backend server not deployed yet<br>
-                        • Environment variables not set<br>
-                        • Network connectivity issues<br>
-                        • API key or agent ID incorrect
-                    </div>
-                `);
+                try {
+                    this.button.classList.add('connecting');
+                    this.icon.textContent = '⏳';
+                    this.updateTooltip('🔄 Connecting...');
+                    
+                    // Call your backend
+                    const response = await fetch('/api/create-web-call', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: 'user_' + Math.random().toString(36).substr(2, 9),
+                            metadata: {
+                                source: 'floating_button',
+                                page_url: window.location.href
+                            }
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Start the call
+                    await this.retellClient.startCall({
+                        accessToken: data.access_token,
+                        sampleRate: 24000
+                    });
+                    
+                } catch (error) {
+                    console.error('Failed to start call:', error);
+                    this.resetButton();
+                    this.updateTooltip('❌ Failed to connect');
+                    
+                    // Show error details in transcript
+                    this.showTranscript();
+                    this.updateTranscript(`Connection Failed: ${error.message}\n\nPossible causes:\n• Backend not deployed\n• Environment variables missing\n• Network issues`);
+                }
+            }
+            
+            endCall() {
+                if (this.retellClient && this.isCallActive) {
+                    this.retellClient.stopCall();
+                }
+                this.resetButton();
+            }
+            
+            resetButton() {
+                this.isCallActive = false;
+                this.button.classList.remove('active', 'connecting');
+                this.icon.textContent = '🎙️';
+                this.endBtn.classList.remove('visible');
+                this.updateTooltip('Click to talk to AI assistant');
+                this.hideTranscript();
+            }
+            
+            updateTooltip(message) {
+                this.tooltip.textContent = message;
+            }
+            
+            showTranscript() {
+                this.transcriptOverlay.classList.add('visible');
+            }
+            
+            hideTranscript() {
+                this.transcriptOverlay.classList.remove('visible');
+            }
+            
+            updateTranscript(text) {
+                this.transcriptContent.textContent = text;
+                this.transcriptContent.scrollTop = this.transcriptContent.scrollHeight;
+            }
+            
+            showNotification() {
+                this.notificationDot.style.display = 'block';
+                setTimeout(() => this.hideNotification(), 5000);
+            }
+            
+            hideNotification() {
+                this.notificationDot.style.display = 'none';
+            }
+            
+            showSDKFailureOptions() {
+                this.showTranscript();
+                this.updateTranscript(`✅ Your backend is ready!
+
+The voice SDK has loading issues, but your API is working.
+
+Options:
+1. 📱 Phone Integration - Get a Retell number
+2. 🔧 React Build - Use proper build tools  
+3. 🌐 Iframe Embed - We host the working version
+4. 📞 Alternative - Custom WebRTC implementation
+
+Your Retell agent (${window.location.hostname}) is ready to receive calls!`);
             }
         }
         
-        function endCall() {
-            if (retellClient && isCallActive) {
-                console.log('Ending call...');
-                retellClient.stopCall();
-            }
-        }
+        // Global functions
+        window.toggleVoiceCall = () => voiceAgent.toggleVoiceCall();
+        window.endCall = () => voiceAgent.endCall();
+        window.hideTranscript = () => voiceAgent.hideTranscript();
         
-        function updateStatus(message) {
-            document.getElementById('status').textContent = message;
-            console.log('Status:', message);
-        }
-        
-        function updateButton(active, connecting = false) {
-            const button = document.getElementById('voiceButton');
-            const endButton = document.getElementById('endButton');
-            
-            if (connecting) {
-                button.innerHTML = '<span class="loading"></span> Connecting...';
-                button.classList.add('active');
-                endButton.style.display = 'none';
-            } else if (active) {
-                button.textContent = '🔴 Connected - Talk Now!';
-                button.classList.add('active');
-                endButton.style.display = 'inline-block';
-            } else {
-                button.textContent = '🎙️ Start Voice Conversation';
-                button.classList.remove('active');
-                endButton.style.display = 'none';
-            }
-        }
-        
-        function showMessage(html) {
-            // Remove existing messages
-            const existingMessages = document.querySelectorAll('.error, .success');
-            existingMessages.forEach(msg => msg.remove());
-            
-            // Create new message
-            const messageDiv = document.createElement('div');
-            messageDiv.innerHTML = html;
-            
-            // Insert after status
-            const statusDiv = document.getElementById('status');
-            statusDiv.parentNode.insertBefore(messageDiv.firstElementChild, statusDiv.nextSibling);
-        }
+        // Initialize the floating voice agent
+        const voiceAgent = new FloatingVoiceAgent();
     </script>
 </body>
 </html>
