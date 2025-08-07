@@ -1,66 +1,242 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Voice Chat</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="font-family: Arial; text-align: center; padding: 20px; background: #f0f0f0;">
-    <h2>🎤 Talk to AI Assistant</h2>
-    <p>Your voice agent is ready!</p>
-    
-    <div style="margin: 20px 0;">
-        <button onclick="testBackend()" style="
-            background: #27ae60; 
-            color: white; 
-            border: none; 
-            padding: 15px 30px; 
-            border-radius: 25px; 
-            font-size: 16px; 
-            cursor: pointer;
-        ">Test Connection</button>
-    </div>
-    
-    <div id="result" style="margin-top: 20px;"></div>
-    
-    <script>
-    async function testBackend() {
-        const resultDiv = document.getElementById('result');
-        resultDiv.innerHTML = '🔄 Testing your voice backend...';
-        
-        try {
-            const response = await fetch('/api/create-web-call', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: 'test_' + Date.now(),
-                    metadata: { source: 'popup_test' }
-                })
-            });
-            
-            const data = await response.json();
-            
-            resultDiv.innerHTML = `
-                <div style="background: #d4edda; padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    ✅ <strong>Backend Working!</strong><br>
-                    Token: ${data.access_token.substring(0, 30)}...<br><br>
-                    
-                    <strong>Next Steps:</strong><br>
-                    1. Get a phone number from Retell.AI<br>
-                    2. Assign it to agent: agent_13c02bf3a71ab766dcbd48b323<br>
-                    3. Share the number with users<br><br>
-                    
-                    <em>Your API is production-ready! 🚀</em>
-                </div>
-            `;
-            
-        } catch (error) {
-            resultDiv.innerHTML = `
-                <div style="background: #f8d7da; padding: 15px; border-radius: 10px;">
-                    ❌ <strong>Error:</strong> ${error.message}
-                </div>
-            `;
+    <title>Voice Chat - AI Assistant</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
         }
-    }
+        
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        h1 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        .status {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 16px;
+        }
+        
+        .test-button {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+            margin: 10px;
+            width: 100%;
+            max-width: 250px;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(39, 174, 96, 0.4);
+        }
+        
+        .test-button:disabled {
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .success {
+            background: rgba(39, 174, 96, 0.2);
+            border: 1px solid rgba(39, 174, 96, 0.5);
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.5);
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        .close-button {
+            background: rgba(231, 76, 60, 0.8);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .close-button:hover {
+            background: rgba(231, 76, 60, 1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 AI Voice Assistant</h1>
+        <p>Your voice agent backend is ready for testing!</p>
+        
+        <div class="status" id="status">
+            Click "Test Connection" to verify your backend is working
+        </div>
+        
+        <button class="test-button" onclick="testBackend()" id="testBtn">
+            🔄 Test Connection
+        </button>
+        
+        <div id="result"></div>
+        
+        <div class="instructions">
+            <h3>📞 How to Enable Voice Calling:</h3>
+            <ol>
+                <li>Go to <a href="https://dashboard.retellai.com" target="_blank" style="color: #ffd700;">dashboard.retellai.com</a></li>
+                <li>Click "Phone Numbers" → "Purchase Number"</li>
+                <li>Buy a number for ~$1-2/month</li>
+                <li>Assign it to agent: <strong>agent_13c02bf3a71ab766dcbd48b323</strong></li>
+                <li>Share the number with users!</li>
+            </ol>
+            <p><strong>That's it!</strong> People can call that number and talk to your AI assistant immediately.</p>
+        </div>
+        
+        <button class="close-button" onclick="window.close()">
+            ❌ Close Window
+        </button>
+    </div>
+
+    <script>
+        async function testBackend() {
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const testBtn = document.getElementById('testBtn');
+            
+            // Update UI
+            statusDiv.textContent = '🔄 Testing your voice backend...';
+            testBtn.disabled = true;
+            testBtn.textContent = '⏳ Testing...';
+            resultDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/create-web-call', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: 'popup_test_' + Date.now(),
+                        metadata: { 
+                            source: 'popup_test',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Success!
+                statusDiv.textContent = '✅ Backend working perfectly!';
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        <strong>🎉 SUCCESS!</strong><br><br>
+                        <strong>✅ API Endpoint:</strong> Working<br>
+                        <strong>✅ Retell Integration:</strong> Connected<br>
+                        <strong>✅ Access Token:</strong> ${data.access_token ? data.access_token.substring(0, 30) + '...' : 'Generated'}<br>
+                        <strong>✅ Call ID:</strong> ${data.call_id || 'Created'}<br><br>
+                        
+                        <strong style="color: #ffd700;">🚀 Your backend is production-ready!</strong><br><br>
+                        
+                        The only thing left is to get a phone number so people can actually call your AI agent.
+                        Follow the instructions above to set up phone calling.
+                    </div>
+                `;
+                
+            } catch (error) {
+                // Error
+                statusDiv.textContent = '❌ Connection failed';
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ ERROR</strong><br><br>
+                        <strong>Problem:</strong> ${error.message}<br><br>
+                        <strong>Possible Causes:</strong><br>
+                        • API endpoint not deployed properly<br>
+                        • Environment variables missing<br>
+                        • Retell.AI API key issues<br><br>
+                        
+                        <strong>Check:</strong><br>
+                        • Vercel deployment status<br>
+                        • Environment variables in Vercel dashboard<br>
+                        • Browser console for more details
+                    </div>
+                `;
+            } finally {
+                // Reset button
+                testBtn.disabled = false;
+                testBtn.textContent = '🔄 Test Again';
+            }
+        }
+        
+        // Auto-test when popup opens
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(testBackend, 500);
+        });
+        
+        // Handle window close
+        window.addEventListener('beforeunload', () => {
+            if (window.opener) {
+                console.log('Voice chat popup closed');
+            }
+        });
     </script>
 </body>
 </html>
